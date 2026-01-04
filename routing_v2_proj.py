@@ -489,152 +489,155 @@ def check_diagonal_zero(matrix):
     diagonal = np.diagonal(matrix)
     return np.all(diagonal == 0)
 
-graph = Graph()
-average_node_degree = []
-traffic = []
-number_of_hops_per_demand = []
-diameter = []
 
-# Default value for the link capacity (999999 corresponds to uncapacitated routing)
-MAX_LINK_CAP = 999999
-#MAX_LINK_CAP = 64
-#MAX_LINK_CAP = 75
-#------------------------------------INPUT MATRICES HERE------------------------------------------------
-# If traffic matrix is not defined, the routing will be done using a full-mesh logical topology with
-# one unit of traffic.
-#TEST NETWORK
-MAX_LINK_CAP = 5
-matrix = [[0,10,10,30,0,0,0,0],
-          [10,0,10,0,0,30,20,0],
-          [10,10,0,10,10,0,40,0],
-          [30,0,10,0,0,0,0,0],
-          [0,0,10,0,0,0,0,20],
-          [0,30,0,0,0,0,10,0],
-          [0,20,40,0,0,10,0,10],
-          [0,0,0,0,20,0,10,0]]
-'''traffic = [[0, 10, 10, 10, 10, 10, 10, 10], 
-           [10, 0, 1, 1, 1, 1, 1, 1], 
-           [10, 1, 0, 1, 1, 1, 1, 1], 
-           [10, 1, 1, 0, 1, 1, 1, 1], 
-           [10, 1, 1, 1, 0, 1, 1, 1], 
-           [10, 1, 1, 1, 1, 0, 1, 1], 
-           [10, 1, 1, 1, 1, 1, 0, 1], 
-           [10, 1, 1, 1, 1, 1, 1, 0]]
-'''
+if __name__ == "__main__":
+    graph = Graph()
+    average_node_degree = []
+    traffic = []
+    number_of_hops_per_demand = []
+    diameter = []
 
-
-#CESNET
-'''matrix = [[0,226.07,334.4,0,0,0,274.08],
-          [226.07,0,315.98,0,0,0,0],
-          [334.4,315.98,0,425.25,0,0,0],
-          [0,0,425.25,0,378.51,173.75,0],
-          [0,0,0,378.51,0,212.79,0],
-          [0,0,0,173.75,212.79,0,330.72],
-          [274.08,0,0,0,0,330.72,0]]'''
-'''traffic = [[0,119.63,125.95,94.72,59.12,91.55,163.3],
-          [119.63,0,95.83,83.72,54.12,79.97,114.80],
-          [125.95,95.83,0.00,80.46,81.02,0.00,104.33],
-          [94.72,83.72,80.46,0.00,116.99,144.81,114.30],
-          [59.12,54.12,81.02,116.99,0.00,124.85,110.11],
-          [91.55,79.97,0.00,144.81,124.85,0.00,144.93],
-          [163.30,114.80,104.33,114.30,110.11,144.93,0.00]]
-'''
+    # Default value for the link capacity (999999 corresponds to uncapacitated routing)
+    MAX_LINK_CAP = 999999
+    #MAX_LINK_CAP = 64
+    #MAX_LINK_CAP = 75
+    #------------------------------------INPUT MATRICES HERE------------------------------------------------
+    # If traffic matrix is not defined, the routing will be done using a full-mesh logical topology with
+    # one unit of traffic.
+    #TEST NETWORK
+    MAX_LINK_CAP = 5
+    matrix = [[0,10,10,30,0,0,0,0],
+              [10,0,10,0,0,30,20,0],
+              [10,10,0,10,10,0,40,0],
+              [30,0,10,0,0,0,0,0],
+              [0,0,10,0,0,0,0,20],
+              [0,30,0,0,0,0,10,0],
+              [0,20,40,0,0,10,0,10],
+              [0,0,0,0,20,0,10,0]]
+    '''traffic = [[0, 10, 10, 10, 10, 10, 10, 10], 
+               [10, 0, 1, 1, 1, 1, 1, 1], 
+               [10, 1, 0, 1, 1, 1, 1, 1], 
+               [10, 1, 1, 0, 1, 1, 1, 1], 
+               [10, 1, 1, 1, 0, 1, 1, 1], 
+               [10, 1, 1, 1, 1, 0, 1, 1], 
+               [10, 1, 1, 1, 1, 1, 0, 1], 
+               [10, 1, 1, 1, 1, 1, 1, 0]]
+    '''
 
 
-#------------------------ INPUT SORTING ORDER----------------------------------------------
-sorting_order = "shortest"
-#sorting_order = "longest"
-#sorting_order = "largest"
-
-#-------------------------DETERMINATION OF NETWORK PARAMETERS-----------------------------
-
-matrix_np = np.array(matrix,dtype=float)
-#print(np.shape(matrix_np))
-if not check_symmetric(matrix_np):
-    print("ERROR: The input adjacency matrix (matrix) is not symmetric.")
-    exit()
-if not check_diagonal_zero(matrix_np):
-    print("ERROR: The input adjacency matrix (matrix) has an element on the main diagonal different than zero.")
-    exit()
-
-start = time.time()
-
-paths = shortestPaths(graph, matrix)
-
-hop_matrix = countHops(paths)
-average_node_degree.append(np.count_nonzero(matrix)/len(matrix))
-
-N = matrix_np.shape[0]
-number_of_links = np.count_nonzero(matrix_np)/2
-min_link_length = np.min(matrix_np[np.nonzero(matrix_np)])
-max_link_length = np.max(matrix_np)
-matrix_np[matrix_np == 0] = np.nan
-avg_link_length = np.nanmean(matrix_np)
-
-traffic = create_traffic_matrix(matrix, traffic)
-number_of_hops_per_demand.append(np.matrix(hop_matrix).sum() / np.matrix(traffic).sum())
-diameter.append(np.matrix(hop_matrix).max())
-
-ordered_paths = orderPaths(paths,traffic,hop_matrix, sorting_order)
-load_matrix = create_load_matrix (matrix)
-matrix_cp = matrix.copy()
-load_matrix,path_matrix,distance_matrix,blocked_traffic, blocked_paths= route(ordered_paths, load_matrix, matrix_cp)
-
-distance_matrix_np = np.array(distance_matrix,dtype=float)
-distance_matrix_np[distance_matrix_np == 0] = np.nan
-distance_matrix_np[distance_matrix_np >= 99999] = np.nan
-min_path_length = np.nanmin(distance_matrix_np)
-max_path_length = np.nanmax(distance_matrix_np)
-avg_path_length = np.nanmean(distance_matrix_np)
-
-total_num_paths = len(ordered_paths)
-blocking_prob = len(blocked_paths)/total_num_paths
-
-final_hop_matrix, avg_hops_per_path = hop_count(path_matrix)
+    #CESNET
+    '''matrix = [[0,226.07,334.4,0,0,0,274.08],
+              [226.07,0,315.98,0,0,0,0],
+              [334.4,315.98,0,425.25,0,0,0],
+              [0,0,425.25,0,378.51,173.75,0],
+              [0,0,0,378.51,0,212.79,0],
+              [0,0,0,173.75,212.79,0,330.72],
+              [274.08,0,0,0,0,330.72,0]]'''
+    '''traffic = [[0,119.63,125.95,94.72,59.12,91.55,163.3],
+              [119.63,0,95.83,83.72,54.12,79.97,114.80],
+              [125.95,95.83,0.00,80.46,81.02,0.00,104.33],
+              [94.72,83.72,80.46,0.00,116.99,144.81,114.30],
+              [59.12,54.12,81.02,116.99,0.00,124.85,110.11],
+              [91.55,79.97,0.00,144.81,124.85,0.00,144.93],
+              [163.30,114.80,104.33,114.30,110.11,144.93,0.00]]
+    '''
 
 
-# PRINTING RESULTS:
-print("Number of Nodes:")
-print(N)
-print("Number of links:")
-print(number_of_links)
-print("Average Node Degree:")
-print(average_node_degree)
-print("Network Diameter:")
-print(diameter)
-print("Average Number of Hops per Demand:")
-print(number_of_hops_per_demand)
-print("Minimum link length:")
-print(min_link_length)
-print("Maximum link length:")
-print(max_link_length)
-print("Average link length:")
-print(avg_link_length)
-print("Total Number of Paths:")
-print(len(ordered_paths))
+    #------------------------ INPUT SORTING ORDER----------------------------------------------
+    sorting_order = "shortest"
+    #sorting_order = "longest"
+    #sorting_order = "largest"
 
-average_load_per_link = printResults(ordered_paths,matrix,load_matrix,distance_matrix)
+    #-------------------------DETERMINATION OF NETWORK PARAMETERS-----------------------------
 
-print("Average load per link:")
-print(average_load_per_link)
+    matrix_np = np.array(matrix,dtype=float)
+    
+    # Check symmetric and diagonal zero inside main block
+    if not check_symmetric(matrix_np):
+        print("ERROR: The input adjacency matrix (matrix) is not symmetric.")
+        exit()
+    if not check_diagonal_zero(matrix_np):
+        print("ERROR: The input adjacency matrix (matrix) has an element on the main diagonal different than zero.")
+        exit()
 
-print("Minimum path length:")
-print(min_path_length)
-print("Maximum path length:")
-print(max_path_length)
-print("Average path length:")
-print(avg_path_length)
-print("Average Number of Hops per Path (after routing):")
-print(avg_hops_per_path)
+    start = time.time()
 
-print("Blocked Traffic:")
-print(blocked_traffic)
-print("Blocking Probability:")
-print(blocking_prob)
+    paths = shortestPaths(graph, matrix)
 
-for b in blocked_paths:
-    print("'source':{},'destination':{},'path':{}".format(b['source'],b['destination'],b['path']))
+    hop_matrix = countHops(paths)
+    average_node_degree.append(np.count_nonzero(matrix)/len(matrix))
 
-end = time.time()
-print("Runtime:")
-print(end - start)
+    N = matrix_np.shape[0]
+    number_of_links = np.count_nonzero(matrix_np)/2
+    min_link_length = np.min(matrix_np[np.nonzero(matrix_np)])
+    max_link_length = np.max(matrix_np)
+    matrix_np[matrix_np == 0] = np.nan
+    avg_link_length = np.nanmean(matrix_np)
+
+    traffic = create_traffic_matrix(matrix, traffic)
+    number_of_hops_per_demand.append(np.matrix(hop_matrix).sum() / np.matrix(traffic).sum())
+    diameter.append(np.matrix(hop_matrix).max())
+
+    ordered_paths = orderPaths(paths,traffic,hop_matrix, sorting_order)
+    load_matrix = create_load_matrix (matrix)
+    matrix_cp = matrix.copy()
+    load_matrix,path_matrix,distance_matrix,blocked_traffic, blocked_paths= route(ordered_paths, load_matrix, matrix_cp)
+
+    distance_matrix_np = np.array(distance_matrix,dtype=float)
+    distance_matrix_np[distance_matrix_np == 0] = np.nan
+    distance_matrix_np[distance_matrix_np >= 99999] = np.nan
+    min_path_length = np.nanmin(distance_matrix_np)
+    max_path_length = np.nanmax(distance_matrix_np)
+    avg_path_length = np.nanmean(distance_matrix_np)
+
+    total_num_paths = len(ordered_paths)
+    blocking_prob = len(blocked_paths)/total_num_paths
+
+    final_hop_matrix, avg_hops_per_path = hop_count(path_matrix)
+
+
+    # PRINTING RESULTS:
+    print("Number of Nodes:")
+    print(N)
+    print("Number of links:")
+    print(number_of_links)
+    print("Average Node Degree:")
+    print(average_node_degree)
+    print("Network Diameter:")
+    print(diameter)
+    print("Average Number of Hops per Demand:")
+    print(number_of_hops_per_demand)
+    print("Minimum link length:")
+    print(min_link_length)
+    print("Maximum link length:")
+    print(max_link_length)
+    print("Average link length:")
+    print(avg_link_length)
+    print("Total Number of Paths:")
+    print(len(ordered_paths))
+
+    average_load_per_link = printResults(ordered_paths,matrix,load_matrix,distance_matrix)
+
+    print("Average load per link:")
+    print(average_load_per_link)
+
+    print("Minimum path length:")
+    print(min_path_length)
+    print("Maximum path length:")
+    print(max_path_length)
+    print("Average path length:")
+    print(avg_path_length)
+    print("Average Number of Hops per Path (after routing):")
+    print(avg_hops_per_path)
+
+    print("Blocked Traffic:")
+    print(blocked_traffic)
+    print("Blocking Probability:")
+    print(blocking_prob)
+
+    for b in blocked_paths:
+        print("'source':{},'destination':{},'path':{}".format(b['source'],b['destination'],b['path']))
+
+    end = time.time()
+    print("Runtime:")
+    print(end - start)
